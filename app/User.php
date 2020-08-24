@@ -48,4 +48,9 @@ class User extends Authenticatable
     {
         return $photo ? url("uploads/{$photo}") : url(config('images.userAvatar'));
     }
+
+    public function files()
+    {
+        $this->hasMany(File::class);
+    }
 }
