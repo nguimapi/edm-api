@@ -35,30 +35,15 @@ class DatabaseSeeder extends Seeder
             'pdf',
             'png',
             'xlsx',
-            'docxs'
+            'docx'
         ];
 
-
-
         factory(Folder::class, 5)->create()->each(function (Folder $folder) {
-
-            $faker = Factory::create();
-
-            $subFolderQty = $faker->randomElement( [0,1,2,3]);
-
-            if ($subFolderQty) {
-                for($i = 0; $i <= $subFolderQty; $i ++) {
-                    Folder::create([
-                        'user_id' => 1,
-                        'parent_id' => $folder->id,
-                        'name' => $faker->name,
-                        'is_folder' => true,
-                    ]);
-                }
-            }
+            $qty = 25;
+            $this->createSubFolders($folder, $qty);
         });
 
-        factory(File::class, 100)->create()->each(function (File $file) use ($file_types) {
+        factory(File::class, 1000)->create()->each(function (File $file) use ($file_types) {
 
             $faker = Factory::create();
             $foldersId =  Folder::all()->pluck('id')->toArray();
@@ -66,11 +51,35 @@ class DatabaseSeeder extends Seeder
             $foldersId = array_merge([null], $foldersId);
 
             $file->update([
-                'parent_id' => $faker->randomElement($foldersId),
+                'folder_id' => $faker->randomElement($foldersId),
                 'type' => $faker->randomElement($file_types),
                 'size' => $faker->randomNumber(),
             ]);
         });
 
     }
+
+    public function createSubFolders(Folder $folder, &$qty)
+    {
+        $faker = Factory::create();
+
+        $subFolderQty = $faker->randomElement( [0,1,2,3]);
+
+        for($i = 0; $i <= $subFolderQty; $i ++) {
+
+            $subFolder = Folder::create([
+                'user_id' => 1,
+                'folder_id' => $folder->id,
+                'name' => $faker->name,
+                'is_folder' => true,
+            ]);
+            $qty--;
+
+            if ($qty > 0) {
+                $this->createSubFolders($subFolder, $qty);
+            }
+        }
+
+    }
+
 }

@@ -15,15 +15,17 @@ class CreateFilesTable extends Migration
     {
         Schema::create('files', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('parent_id')->nullable();
+            $table->unsignedBigInteger('folder_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('name');
             $table->string('type')->nullable();
             $table->string('size')->nullable();
+            $table->string('link')->nullable();
             $table->boolean('is_folder')->default(0);
             $table->boolean('is_archived')->default(0);
             $table->boolean('is_trashed')->default(0);
-            $table->foreign('parent_id')->references('id')->on('files');
+            $table->timestamp('consulted_at');
+            $table->foreign('folder_id')->references('id')->on('files');
             $table->foreign('user_id')->references('id')->on('users');
             $table->timestamps();
         });

@@ -12,19 +12,16 @@ class Folder extends File
         static::addGlobalScope(new FolderScope());
     }
 
-    public function setIsFolderAttribute($is_folder)
+    public function setIsFolderAttribute()
     {
         $this->attributes['is_folder'] = 1;
     }
 
     public function files()
     {
-        return $this->hasMany(File::class);
+        return $this->hasMany(File::class, 'folder_id', 'id');
     }
 
-    public function folders()
-    {
-        return $this->hasMany(Folder::class);
-    }
+
 
 }

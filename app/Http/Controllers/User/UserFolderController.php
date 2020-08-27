@@ -27,34 +27,46 @@ class UserFolderController extends ApiController
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Http\Request $request
+     * @param User $user
      * @return Response
+     * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request)
+    public function store(Request $request, User $user)
     {
-        //
+        $rules = [
+            'folder_id' => 'nullable|exists:files,id',
+            'name' => 'required|max:255'
+        ];
+
+        $this->validate($request, $rules);
+
+        $data = $request->only(['folder_id', 'name']);
+
+        $data['is_folder'] = 1;
+
+        $folder = $user->folders()->create($data);
+
+        $folder->refresh();
+
+        return $this->showOne($folder);
+
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\Folder  $folder
+     * @param User $user
+     * @param  \App\Folder $folder
      * @return Response
      */
-    public function show(Folder $folder)
+    public function show(User $user, Folder $folder)
     {
+        $folder->files;
 
-    }
+        $folder->update(['consulted_at' => now()->format('Y-m-d H:i:s')]);
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Folder  $folder
-     * @return Response
-     */
-    public function edit(Folder $folder)
-    {
-        //
+        return $this->showOne($folder);
     }
 
     /**

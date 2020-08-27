@@ -18,7 +18,7 @@ class UserFileController extends ApiController
      */
     public function index(User $user)
     {
-        $files = File::whereNull('parent_id')->get();
+        $files = File::whereNull('folder_id')->get();
         return $this->showAll($files);
     }
 
@@ -31,7 +31,12 @@ class UserFileController extends ApiController
      */
     public function store(Request $request, User $user)
     {
-        //
+        $rules = [
+            'folder_id' => 'nullable|exists:files,id',
+            'is_folder' => 'in:0,1',
+            'name' => 'required',
+            'file'
+        ];
     }
 
     /**
