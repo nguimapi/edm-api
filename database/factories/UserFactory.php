@@ -36,6 +36,7 @@ $factory->define(Folder::class, function (Faker $faker) {
         'user_id' => 1,
         'name' => $faker->name,
         'is_folder' => true,
+        'is_confirmed' => true,
     ];
 });
 
@@ -44,5 +45,6 @@ $factory->define(File::class, function (Faker $faker) {
         'user_id' => 1,
         'name' => $faker->name,
         'is_folder' => false,
+        'is_confirmed' => true,
     ];
 });

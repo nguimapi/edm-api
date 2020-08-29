@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::post('oauth/token','\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken');
+Route::post('confirm','User\UserFileController@confirmUpload');
 
 Route::name('me')->get('users/me','User\UserController@me');
 

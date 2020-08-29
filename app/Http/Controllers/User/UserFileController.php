@@ -18,7 +18,7 @@ class UserFileController extends ApiController
      */
     public function index(User $user)
     {
-        $files = File::whereNull('folder_id')->get();
+        $files = File::confirmed()->whereNull('folder_id')->get();
         return $this->showAll($files);
     }
 
@@ -27,7 +27,8 @@ class UserFileController extends ApiController
      *
      * @param Request $request
      * @param User $user
-     * @return void
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request, User $user)
     {
@@ -35,8 +36,66 @@ class UserFileController extends ApiController
             'folder_id' => 'nullable|exists:files,id',
             'is_folder' => 'in:0,1',
             'name' => 'required',
-            'file'
+            'file' => 'required_if:is_folder,1|file',
+            'folderCode' => 'nullable|string',
+            'code' => 'required',
+            'batch' => 'required',
+            'originalType' => 'nullable|string',
+            'relativePath' => 'required_if:is_folder,0|string',
         ];
+
+        $this->validate($request, $rules);
+
+        $data = $request->except(['id']);
+
+        if ($request->is_folder) {
+            $folder = $user->folders()->create($data);
+
+            return $this->showOne($folder);
+        }
+
+        $folder = $user->folders()
+            ->where([
+                ['batch', '=' , $request->batch],
+                ['code', '=', $request->folderCode]
+            ])->first();
+
+        $file = $request->file('file');
+        $data['type'] = $file->clientExtension();
+        $data['link'] = $file->store($request->relativePath);
+        $data['folder_id'] = $folder->id;
+
+        $files = $user->files()->create($data);
+
+        return $this->showOne($files);
+
+    }
+
+    /**
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function confirmUpload(Request $request)
+    {
+        $rules = [
+            'user_id' => 'required|exists:users,id',
+            'batch'  => 'required|exists:files,batch',
+        ];
+        $this->validate($request, $rules);
+
+        $user =  User::findOrfail($request->user_id);
+
+        $files = $user->files()->where(['batch', '=', $request->batch]);
+
+        $files->each(function (File $file) {
+            $file->update(['is_confirmed' => 1]);
+        });
+
+        $files = $files->get();
+
+        return $this->showAll($files);
+
     }
 
     /**

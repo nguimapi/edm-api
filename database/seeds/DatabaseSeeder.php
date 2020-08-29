@@ -52,8 +52,9 @@ class DatabaseSeeder extends Seeder
 
             $file->update([
                 'folder_id' => $faker->randomElement($foldersId),
-                'type' => $faker->randomElement($file_types),
+                'type' => $extension = $faker->randomElement($file_types),
                 'size' => $faker->randomNumber(),
+                'name' => $file->name . '.'. $extension,
             ]);
         });
 
@@ -72,6 +73,7 @@ class DatabaseSeeder extends Seeder
                 'folder_id' => $folder->id,
                 'name' => $faker->name,
                 'is_folder' => true,
+                'is_confirmed' => true,
             ]);
             $qty--;
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class UserFolderController extends ApiController
 {
@@ -19,7 +20,7 @@ class UserFolderController extends ApiController
      */
     public function index(User $user)
     {
-        $folders = Folder::all();
+        $folders = Folder::confirmed()->get();
 
         return $this->showAll($folders);
     }
@@ -44,8 +45,11 @@ class UserFolderController extends ApiController
         $data = $request->only(['folder_id', 'name']);
 
         $data['is_folder'] = 1;
+        $data['is_confirmed'] = 1;
 
         $folder = $user->folders()->create($data);
+
+        Storage::makeDirectory($folder->getOriginal('name'));
 
         $folder->refresh();
 
