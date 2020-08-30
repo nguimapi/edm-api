@@ -38,7 +38,7 @@ class DatabaseSeeder extends Seeder
             'docx'
         ];
 
-        factory(Folder::class, 5)->create()->each(function (Folder $folder) {
+      /*  factory(Folder::class, 5)->create()->each(function (Folder $folder) {
             $qty = 25;
             $this->createSubFolders($folder, $qty);
         });
@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
                 'size' => $faker->randomNumber(),
                 'name' => $file->name . '.'. $extension,
             ]);
-        });
+        });*/
 
     }
 

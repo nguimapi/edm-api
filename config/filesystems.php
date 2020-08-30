@@ -60,6 +60,18 @@ return [
             'visibility' => 'public',
         ],
 
+        'trash' => [
+            'driver' => 'local',
+            'root' => public_path('trash'),
+            'visibility' => 'public',
+        ],
+
+        'archives' => [
+            'driver' => 'local',
+            'root' => public_path('archives'),
+            'visibility' => 'public',
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

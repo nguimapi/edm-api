@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\User;
 
 use App\File;
+use App\Folder;
 use App\Http\Controllers\ApiController;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class UserFileController extends ApiController
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -33,42 +41,64 @@ class UserFileController extends ApiController
     public function store(Request $request, User $user)
     {
         $rules = [
-            'folder_id' => 'nullable|exists:files,id',
-            'is_folder' => 'in:0,1',
+            'folder_id' => 'nullable',
+            'is_folder' => 'boolean',
             'name' => 'required',
-            'file' => 'required_if:is_folder,1|file',
+            'file' => 'required_if:is_folder,0|file',
             'folderCode' => 'nullable|string',
             'code' => 'required',
             'batch' => 'required',
-            'originalType' => 'nullable|string',
-            'relativePath' => 'required_if:is_folder,0|string',
+            'originalType' => 'nullable',
+            'relativePath' => 'nullable',
         ];
 
         $this->validate($request, $rules);
 
-        $data = $request->except(['id']);
+        return DB::transaction(function () use ($request, $user){
+            $data = $request->except(['id']);
 
-        if ($request->is_folder) {
-            $folder = $user->folders()->create($data);
+            if ($request->is_folder) {
+                if ($request->folder_id) {
+                    $folder = Folder::findOrFail($request->folder_id);
+                    $data['path'] = $folder->path.'/'.$data['name'];
+                    $data['relative_path'] = $folder->relative_path.'/'.$data['name'];
+                }
 
-            return $this->showOne($folder);
-        }
+                $folder = $user->folders()->create($data);
 
-        $folder = $user->folders()
-            ->where([
-                ['batch', '=' , $request->batch],
-                ['code', '=', $request->folderCode]
-            ])->first();
+                $folder->refresh();
 
-        $file = $request->file('file');
-        $data['type'] = $file->clientExtension();
-        $data['link'] = $file->store($request->relativePath);
-        $data['folder_id'] = $folder->id;
+                return $this->showOne($folder);
+            }
 
-        $files = $user->files()->create($data);
+            if ($request->relativePath && Storage::exists($request->input('relativePath'))) {
+                return $this->showMessage([
+                    'message' => 'failed',
+                    'description' => 'A fine with the same name already exist'
+                ], 409);
+            }
 
-        return $this->showOne($files);
+            $file = $request->file('file');
 
+            Storage::put($path = $request->relativePath ?? $file->getClientOriginalName(), file_get_contents($file));
+
+            $relative_path = str_split($request->relativePath);
+
+            array_pop($relative_path);
+
+            $data['type'] = $file->clientExtension();
+            $data['size'] = $file->getSize();
+            $data['path'] = 'uploads/'.$path;
+            $data['relative_path'] = implode($relative_path);
+            $data['folder_id'] = $request->has('folder_id') ? $request->folder_id : null;
+
+            $file = $user->files()->create($data);
+
+            $file->refresh();
+
+            return $this->showOne($file);
+
+        });
     }
 
     /**
@@ -86,15 +116,11 @@ class UserFileController extends ApiController
 
         $user =  User::findOrfail($request->user_id);
 
-        $files = $user->files()->where(['batch', '=', $request->batch]);
+        $files = $user->files()->where('batch', '=', $request->batch);
 
-        $files->each(function (File $file) {
-            $file->update(['is_confirmed' => 1]);
-        });
+        $files->update(['is_confirmed' => 1]);
 
-        $files = $files->get();
-
-        return $this->showAll($files);
+        return $this->successResponse('success');
 
     }
 
@@ -109,27 +135,65 @@ class UserFileController extends ApiController
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
-    {
-        //
-    }
 
     /**
      * Update the specified resource in storage.
      *
      * @param Request $request
-     * @param  int  $id
+     * @param User $user
+     * @param File $file
      * @return Response
+     * @throws \Illuminate\Validation\ValidationException
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, User $user, File $file)
     {
-        //
+        $rules = [
+            'folder_id' => 'nullable',
+            'name' => 'nullable',
+            'is_archived' => 'nullable|boolean',
+            'is_trashed' => 'nullable|boolean',
+            'consulted_at' => 'nullable|date',
+        ];
+
+        $this->validate($request, $rules);
+
+        return DB::transaction(function () use ($file, $request) {
+
+            if ($request->name) {
+
+                $newName = $request->name;
+
+                $test_extension = array_pop(str_split($newName));
+
+                $currentPath = $file->path;
+                $newPath = $file->relative_path.'/'.$request->name;
+
+                if (strtolower($test_extension) !== strtolower($file->extention)) {
+                    $newPath = $newPath.'.'.$file->type;
+                }
+
+                if(Storage::exists($file->path)){
+                    Storage::move($currentPath, $newPath);
+                }
+            }
+
+            $file->update($request->only([
+                'folder_id',
+                'name',
+                'is_archived',
+                'is_trashed',
+                'consulted_at'
+            ]));
+
+            return $this->showOne($file);
+        });
+
+
+    }
+
+    public function editFile(File $file)
+    {
+
     }
 
     /**
@@ -138,7 +202,7 @@ class UserFileController extends ApiController
      * @param  int  $id
      * @return Response
      */
-    public function destroy($id)
+    public function destroy(User $user, File $file)
     {
         //
     }

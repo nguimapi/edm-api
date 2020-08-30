@@ -21,6 +21,7 @@ class CreateFilesTable extends Migration
             $table->string('code')->nullable();
             $table->string('type')->nullable();
             $table->string('original_type')->nullable();
+            $table->string('relative_path')->nullable();
             $table->string('size')->nullable();
             $table->string('path')->nullable();
             $table->string('batch')->nullable();

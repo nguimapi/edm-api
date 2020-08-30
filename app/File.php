@@ -39,7 +39,9 @@ class File extends Model
         'code',
         'path',
         'batch',
-        'is_confirmed'
+        'is_confirmed',
+        'original_type',
+        'relative_path',
     ];
 
     public function getLinkAttribute()
@@ -85,6 +87,7 @@ class File extends Model
         return Carbon::parse($this->created_at)->format('Y-m-d');
     }
 
+
     public function getParentsAttribute()
     {
         $parents = [];
@@ -109,14 +112,28 @@ class File extends Model
         return intval($size);
     }
 
-    public function getNameAttribute($name)
-    {
-        return $this->is_folder ? $name : $name.'.'.$this->type;
-    }
-
     public function scopeConfirmed(Builder $q)
     {
-        return $q->where('is_confirmed', '=', 1);
+        return $q->where([
+            ['is_confirmed', '=', 1],
+            ['is_trashed', '=', 0],
+            ['is_archived', '=', 0]
+        ]);
+    }
+
+    public function scopeTrash(Builder $q)
+    {
+        return $q->where('is_trashed', '=', 1);
+    }
+
+    public function scopeArchives(Builder $q)
+    {
+        return $q->where('is_archived', '=', 1);
+    }
+
+    public function getTypeAttribute($type)
+    {
+        return $type ?? 'folder';
     }
 
 }

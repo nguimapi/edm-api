@@ -8,10 +8,15 @@ use App\Http\Controllers\Controller;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class UserFolderController extends ApiController
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+    }
     /**
      * Display a listing of the resource.
      *
@@ -42,18 +47,46 @@ class UserFolderController extends ApiController
 
         $this->validate($request, $rules);
 
-        $data = $request->only(['folder_id', 'name']);
+        return DB::transaction(function () use ($request, $user) {
+            $data = $request->only(['folder_id', 'name']);
 
-        $data['is_folder'] = 1;
-        $data['is_confirmed'] = 1;
+            if ($request->has('folder_id')) {
+                $folder = Folder::where([
+                    ['folder_id', '=', $request->folder_id],
+                    ['name', '=', $request->name]])
+                    ->first();
 
-        $folder = $user->folders()->create($data);
+                if ($folder) {
+                    return $this->showMessage([
+                        'message' => 'failed',
+                        'description' => 'A folder with the same name already exist'
+                    ], 409);
+                }
 
-        Storage::makeDirectory($folder->getOriginal('name'));
+                $folder = Folder::findOrFail($request->folder_id);
+                $data['path'] = $folder->path.'/'.$data['name'];
+                $data['relative_path'] = $folder->relative_path.'/'.$data['name'];
+            }
 
-        $folder->refresh();
+            $data['is_folder'] = 1;
+            $data['is_confirmed'] = 1;
+            $data['path'] = 'uploads';
 
-        return $this->showOne($folder);
+            if (!$request->has('folder_id') && Storage::exists($request->input('name'))) {
+                return $this->showMessage([
+                    'message' => 'failed',
+                    'description' => 'A folder with the same name already exist'
+                ], 409);
+            }
+
+            $folder = $user->folders()->create($data);
+
+            Storage::makeDirectory($folder->getOriginal('name'));
+
+            $folder->refresh();
+
+            return $this->showOne($folder);
+        });
 
     }
 

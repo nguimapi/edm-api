@@ -12,6 +12,21 @@ class Folder extends File
         static::addGlobalScope(new FolderScope());
     }
 
+    public function getChildren()
+    {
+
+        $children = [];
+
+    }
+
+    public static function getChildrenFiles(Folder $folder)
+    {
+        $childrenFiles = File::where('folder_id', '=', $folder->id)->get();
+
+
+
+    }
+
     public function setIsFolderAttribute()
     {
         $this->attributes['is_folder'] = 1;
