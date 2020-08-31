@@ -74,7 +74,7 @@ class UserFolderController extends ApiController
 			
 			}
 
-            if (!$request->has('folder_id') && Storage::exists($request->input('name'))) {
+            if (Storage::exists($data['path'])) {
                 return $this->showMessage([
                     'message' => 'failed',
                     'description' => 'A folder with the same name already exist'
@@ -83,7 +83,7 @@ class UserFolderController extends ApiController
 
             $folder = $user->folders()->create($data);
 
-            Storage::makeDirectory($folder->getOriginal('name'));
+            Storage::makeDirectory($folder->path);
 
             $folder->refresh();
 

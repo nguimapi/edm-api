@@ -76,17 +76,25 @@ class UserFileController extends ApiController
                 return $this->showOne($folder);
             }
 
-            if ($request->relativePath && Storage::exists($request->input('relativePath'))) {
+            
+            $file = $request->file('file');
+
+            $path = $request->name;
+			
+			if ($request->folder_id) {
+				$folder = Folder::findOrFail($request->folder_id);
+				$path = $folder->path.'/'.$request->name;
+			}
+			
+			if (Storage::exists($path)) {
                 return $this->showMessage([
                     'message' => 'failed',
                     'description' => 'A fine with the same name already exist'
                 ], 409);
             }
 
-            $file = $request->file('file');
-
-            Storage::put($path = $request->relativePath ?? $file->getClientOriginalName(), file_get_contents($file));
-
+            Storage::put($path ?? $file->getClientOriginalName(), file_get_contents($file));
+			
             $relative_path = explode('/', $request->relativePath);
 
             array_pop($relative_path);
