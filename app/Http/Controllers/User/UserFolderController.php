@@ -49,8 +49,10 @@ class UserFolderController extends ApiController
 
         return DB::transaction(function () use ($request, $user) {
             $data = $request->only(['folder_id', 'name']);
+            $data['is_folder'] = 1;
+            $data['is_confirmed'] = 1;
 
-            if ($request->has('folder_id')) {
+            if ($request->folder_id) {
                 $folder = Folder::where([
                     ['folder_id', '=', $request->folder_id],
                     ['name', '=', $request->name]])
@@ -65,12 +67,12 @@ class UserFolderController extends ApiController
 
                 $folder = Folder::findOrFail($request->folder_id);
                 $data['path'] = $folder->path.'/'.$data['name'];
-                $data['relative_path'] = $folder->relative_path.'/'.$data['name'];
-            }
-
-            $data['is_folder'] = 1;
-            $data['is_confirmed'] = 1;
-            $data['path'] = 'uploads';
+                $data['relative_path'] = $folder->path;
+            } else {
+				 $data['path'] = $data['name'];
+                 $data['relative_path'] = null;
+			
+			}
 
             if (!$request->has('folder_id') && Storage::exists($request->input('name'))) {
                 return $this->showMessage([

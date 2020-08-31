@@ -61,8 +61,13 @@ class UserFileController extends ApiController
                 if ($request->folder_id) {
                     $folder = Folder::findOrFail($request->folder_id);
                     $data['path'] = $folder->path.'/'.$data['name'];
-                    $data['relative_path'] = $folder->relative_path.'/'.$data['name'];
-                }
+                    $data['relative_path'] = $folder->path;
+                } else {
+		
+				   $data['path'] = $data['name'];
+				   $data['relative_path'] = null;
+
+				}
 
                 $folder = $user->folders()->create($data);
 
@@ -82,14 +87,14 @@ class UserFileController extends ApiController
 
             Storage::put($path = $request->relativePath ?? $file->getClientOriginalName(), file_get_contents($file));
 
-            $relative_path = str_split($request->relativePath);
+            $relative_path = explode('/', $request->relativePath);
 
             array_pop($relative_path);
 
             $data['type'] = $file->clientExtension();
             $data['size'] = $file->getSize();
-            $data['path'] = 'uploads/'.$path;
-            $data['relative_path'] = implode($relative_path);
+            $data['path'] = $path;
+            $data['relative_path'] = implode('/', $relative_path);
             $data['folder_id'] = $request->has('folder_id') ? $request->folder_id : null;
 
             $file = $user->files()->create($data);
@@ -156,34 +161,31 @@ class UserFileController extends ApiController
         ];
 
         $this->validate($request, $rules);
-
+		
+	
         return DB::transaction(function () use ($file, $request) {
-
-            if ($request->name) {
-
-                $newName = $request->name;
-
-                $test_extension = array_pop(str_split($newName));
-
-                $currentPath = $file->path;
-                $newPath = $file->relative_path.'/'.$request->name;
-
-                if (strtolower($test_extension) !== strtolower($file->extention)) {
-                    $newPath = $newPath.'.'.$file->type;
-                }
-
-                if(Storage::exists($file->path)){
-                    Storage::move($currentPath, $newPath);
-                }
-            }
-
-            $file->update($request->only([
+             $data = $request->only([
                 'folder_id',
                 'name',
                 'is_archived',
                 'is_trashed',
                 'consulted_at'
-            ]));
+            ]);
+            if ($request->name) {
+
+			    $currentPath = $file->path;
+                $newName = $request->name;
+				$newPath = $file->relative_path.'/'.$request->name;
+				
+                if(Storage::exists($file->path)){
+                    Storage::move($currentPath, $newPath);
+                }
+				
+				$data['path'] = $newPath;
+
+            }
+
+            $file->update($data);
 
             return $this->showOne($file);
         });
