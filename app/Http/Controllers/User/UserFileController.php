@@ -26,7 +26,7 @@ class UserFileController extends ApiController
      */
     public function index(User $user)
     {
-        $files = File::confirmed()->whereNull('folder_id')->get();
+        $files = File::all();
         return $this->showAll($files);
     }
 
@@ -89,7 +89,7 @@ class UserFileController extends ApiController
 			if (Storage::exists($path)) {
                 return $this->showMessage([
                     'message' => 'failed',
-                    'description' => 'A fine with the same name already exist'
+                    'description' => 'A file with the same name already exist'
                 ], 409);
             }
 
@@ -125,15 +125,21 @@ class UserFileController extends ApiController
             'user_id' => 'required|exists:users,id',
             'batch'  => 'required|exists:files,batch',
         ];
-        $this->validate($request, $rules);
+		
+		$this->validate($request, $rules);
 
-        $user =  User::findOrfail($request->user_id);
+		return DB::transaction(function () use ($request) {
+            $user =  User::findOrfail($request->user_id);
 
-        $files = $user->files()->where('batch', '=', $request->batch);
+            $files = $user->files()->where('batch', '=', $request->batch);
 
-        $files->update(['is_confirmed' => 1]);
+            $files->update(['is_confirmed' => 1]);
+		
+           return $this->successResponse('success');
+        });
+		
 
-        return $this->successResponse('success');
+       
 
     }
 
@@ -192,6 +198,16 @@ class UserFileController extends ApiController
 				$data['path'] = $newPath;
 
             }
+			
+			if ($request->has('is_archived') && $request->is_archived == 1) {
+			
+				$data['archived_at'] = now()->format('Y-m-d H:i:s');
+			}
+			
+			if ($request->has('is_trashed') && $request->is_trashed == 1) {
+			
+				$data['trashed_at'] = now()->format('Y-m-d H:i:s');
+			}
 
             $file->update($data);
 
@@ -214,6 +230,9 @@ class UserFileController extends ApiController
      */
     public function destroy(User $user, File $file)
     {
-        //
+       $file = $file->destroy();
+	   
+	   return $this->showOne($file);
+
     }
 }

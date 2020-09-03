@@ -20,6 +20,6 @@ Route::post('confirm','User\UserFileController@confirmUpload');
 
 Route::name('me')->get('users/me','User\UserController@me');
 
-Route::resource('users.files', 'User\UserFileController')->only(['index', 'store', 'update']);
+Route::resource('users.files', 'User\UserFileController')->only(['index', 'store', 'update', 'destroy']);
 Route::resource('users.folders', 'User\UserFolderController')->only(['index', 'show', 'store', 'update', 'destroy']);
 

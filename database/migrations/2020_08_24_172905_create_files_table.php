@@ -30,9 +30,12 @@ class CreateFilesTable extends Migration
             $table->boolean('is_archived')->default(0);
             $table->boolean('is_trashed')->default(0);
             $table->timestamp('consulted_at')->nullable();
+            $table->timestamp('archived_at')->nullable();
+            $table->timestamp('trashed_at')->nullable();
             $table->foreign('folder_id')->references('id')->on('files');
             $table->foreign('user_id')->references('id')->on('users');
             $table->timestamps();
+			$table->softDeletes();
         });
     }
 
